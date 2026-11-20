@@ -1,0 +1,179 @@
+/*
+ * VectorPrep styles: Tailwind CSS v4.
+ * The colour tokens follow the shadcn/ui "zinc" look. They change with prefers-color-scheme.
+ * Most styling is utility classes in index.html and src/**. This file holds only the tokens,
+ * the base layer and a few shared utilities (buttons, badges, alerts, tooltips).
+ */
+@import 'tailwindcss';
+
+:root {
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+  --surface: oklch(0.985 0 0);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.885);
+  --primary: oklch(0.21 0.006 285.885);
+  --primary-foreground: oklch(0.985 0 0);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.871 0.006 286.286);
+  --ring: oklch(0.705 0.015 286.067);
+  --destructive: oklch(0.577 0.245 27.325);
+  --success: oklch(0.527 0.154 150.069);
+  --warning: oklch(0.555 0.163 48.998);
+  --info: oklch(0.488 0.243 264.376);
+  --checker-a: oklch(0.955 0.002 286.3);
+  --checker-b: oklch(0.99 0 0);
+  --stage-a: oklch(0.92 0.004 286.32);
+  --stage-b: oklch(0.945 0.003 286.32);
+  --tooltip: oklch(0.21 0.006 285.885);
+  --tooltip-foreground: oklch(0.985 0 0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: oklch(0.141 0.005 285.823);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.18 0.006 285.885);
+    --card-foreground: oklch(0.985 0 0);
+    --surface: oklch(0.16 0.005 285.823);
+    --muted: oklch(0.274 0.006 286.033);
+    --muted-foreground: oklch(0.705 0.015 286.067);
+    --accent: oklch(0.274 0.006 286.033);
+    --accent-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.92 0.004 286.32);
+    --primary-foreground: oklch(0.21 0.006 285.885);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.552 0.016 285.938);
+    --destructive: oklch(0.704 0.191 22.216);
+    --success: oklch(0.792 0.209 151.711);
+    --warning: oklch(0.828 0.189 84.429);
+    --info: oklch(0.707 0.165 254.624);
+    --checker-a: oklch(0.24 0.006 286.033);
+    --checker-b: oklch(0.21 0.006 285.885);
+    --stage-a: oklch(0.2 0.005 285.823);
+    --stage-b: oklch(0.225 0.006 285.885);
+    --tooltip: oklch(0.92 0.004 286.32);
+    --tooltip-foreground: oklch(0.21 0.006 285.885);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-foreground: var(--tooltip-foreground);
+}
+
+@theme {
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans text-sm antialiased;
+  }
+  ::selection {
+    @apply bg-primary text-primary-foreground;
+  }
+}
+
+/* Buttons. Combine `btn` with one variant and, if necessary, one size. */
+@utility btn {
+  @apply inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap select-none
+    h-9 px-4 transition-[color,background-color,border-color,box-shadow] outline-none
+    focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring
+    disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0;
+}
+@utility btn-primary {
+  @apply bg-primary text-primary-foreground shadow-xs hover:bg-primary/90;
+}
+@utility btn-outline {
+  @apply border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:hover:bg-input/50;
+}
+@utility btn-ghost {
+  @apply hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50;
+}
+@utility btn-sm {
+  @apply h-8 gap-1.5 rounded-md px-3 text-[13px];
+}
+@utility btn-xs {
+  @apply h-7 gap-1 rounded-md px-2.5 text-xs;
+}
+@utility btn-icon {
+  @apply size-8 px-0;
+}
+
+@utility badge {
+  @apply inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap [&_svg]:size-3;
+}
+
+@utility alert {
+  @apply flex items-start gap-3 rounded-lg border px-4 py-3 text-sm [&>svg]:mt-0.5 [&>svg]:size-4 [&>svg]:shrink-0;
+}
+
+@utility kbd {
+  @apply inline-flex h-5 min-w-5 items-center justify-center rounded-sm border border-border bg-muted px-1 font-mono text-[11px] font-medium text-muted-foreground;
+}
+
+@utility bg-checker {
+  background-image: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%);
+  background-size: 14px 14px;
+}
+
+@utility bg-stage {
+  background-image: repeating-conic-gradient(var(--stage-a) 0 25%, var(--stage-b) 0 50%);
+  background-size: 20px 20px;
+}
+
+/*
+ * Tooltip for icon buttons: <button data-tip="Zoom in" aria-label="Zoom in">.
+ * It shows on hover and on keyboard focus. Add `tip-end` to align it to the right edge.
+ */
+@utility tip {
+  @apply relative;
+  &::after {
+    content: attr(data-tip);
+    @apply pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md bg-tooltip px-2.5 py-1 text-xs font-normal
+      whitespace-nowrap text-tooltip-foreground opacity-0 shadow-md transition-opacity duration-100;
+  }
+  &:hover::after,
+  &:focus-visible::after {
+    @apply opacity-100 delay-300;
+  }
+}
+@utility tip-end {
+  &::after {
+    @apply right-0 left-auto translate-x-0;
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+public/pdfjs/
+test-results/
+playwright-report/
+# Never commit client files or anything derived from them.
+*.ai
+*.pdf
+*.eps
+samples/

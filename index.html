@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>VectorPrep</title>
+<link rel="icon" href="data:,">
+</head>
+<body class="min-h-dvh">
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 btn btn-primary btn-sm">Skip to content</a>
+
+<header class="border-b bg-surface">
+  <div class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
+    <div class="flex items-center gap-3">
+      <div class="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true"><i data-icon="vector" class="size-5"></i></div>
+      <div>
+        <h1 class="text-base leading-tight font-semibold tracking-tight">VectorPrep</h1>
+        <p class="text-xs text-muted-foreground">Prepare .ai and PDF files for CorelDRAW</p>
+      </div>
+    </div>
+    <span class="badge ml-auto border-border bg-background text-muted-foreground" data-testid="privacy-badge"><i data-icon="lock"></i>Runs in your browser. Your files stay on this computer.</span>
+  </div>
+</header>
+
+<main id="main" class="mx-auto max-w-5xl px-4 pt-6 pb-10 sm:px-6">
+  <label id="drop" data-testid="drop-zone" tabindex="0"
+    class="group mb-6 flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-input bg-card px-6 py-10 text-center transition-colors outline-none
+      hover:border-ring hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50
+      data-compact:flex-row data-compact:gap-4 data-compact:px-4 data-compact:py-3 data-compact:text-left">
+    <input id="file" type="file" accept=".ai,.pdf,application/pdf,application/illustrator" hidden>
+    <span class="grid size-12 shrink-0 place-items-center rounded-full border bg-background text-muted-foreground shadow-xs transition-colors group-hover:text-foreground group-data-compact:size-9">
+      <i data-icon="upload" class="size-5 group-data-compact:size-4"></i>
+    </span>
+    <span class="flex flex-col gap-1 group-data-compact:flex-1 group-data-compact:gap-0">
+      <strong class="text-base font-semibold group-data-compact:text-sm"><span class="group-data-compact:hidden">Drop an .ai or .pdf file on this page</span><span class="hidden group-data-compact:inline">Open another file</span></strong>
+      <span class="text-muted-foreground"><span class="group-data-compact:hidden">Or click to select a file</span><span class="hidden group-data-compact:inline">Drop a file on the page, or click to select a file</span></span>
+    </span>
+    <span class="flex flex-wrap justify-center gap-2 group-data-compact:hidden">
+      <span class="badge border-border bg-muted text-muted-foreground">.ai (PDF compatible)</span>
+      <span class="badge border-border bg-muted text-muted-foreground">.pdf</span>
+    </span>
+    <span class="max-w-xl text-xs text-muted-foreground group-data-compact:hidden">Check each artboard. Export clean PDFs. Download single elements.</span>
+  </label>
+
+  <div id="status" data-testid="status" role="status" aria-live="polite" hidden></div>
+
+  <section id="result" data-testid="result" aria-labelledby="fname" hidden class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs">
+      <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground" aria-hidden="true"><i data-icon="file" class="size-5"></i></span>
+      <div class="min-w-0 flex-1">
+        <h2 id="fname" data-testid="file-name" class="font-semibold break-all"></h2>
+        <div id="fmeta" data-testid="file-meta" class="text-[13px] text-muted-foreground"></div>
+      </div>
+      <button id="reset" data-testid="reset" class="btn btn-outline btn-sm" type="button"><i data-icon="reset"></i>Close file</button>
+    </div>
+
+    <div id="notes" data-testid="notes" class="flex flex-col gap-2 empty:hidden"></div>
+
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div class="inline-flex items-center rounded-lg border bg-muted p-0.5" role="group" aria-label="Select artboards">
+        <span class="px-2 text-xs font-medium text-muted-foreground">Select</span>
+        <button type="button" class="btn btn-ghost btn-xs" data-select="all">All</button>
+        <button type="button" class="btn btn-ghost btn-xs" data-select="none">None</button>
+        <button type="button" class="btn btn-ghost btn-xs" data-select="recommended">Recommended</button>
+      </div>
+      <span id="selcount" data-testid="selection-count" class="text-[13px] font-medium tabular-nums" aria-live="polite"></span>
+      <span class="ml-auto text-xs text-muted-foreground">Click a preview to open the viewer and select elements.</span>
+    </div>
+
+    <div id="pages" data-testid="artboards" class="flex flex-col gap-3" role="list" aria-label="Artboards"></div>
+
+    <section aria-labelledby="export-title" data-testid="export-bar"
+      class="sticky bottom-3 z-10 mt-2 rounded-xl border bg-card/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/85">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div class="min-w-0 flex-1">
+          <h2 id="export-title" class="flex items-center gap-2 font-semibold"><i data-icon="download" class="size-4 text-muted-foreground"></i>Export</h2>
+          <p id="exp-single-name" data-testid="export-name" class="mt-0.5 font-mono text-xs break-all text-muted-foreground"></p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="exp-zip" data-testid="export-zip" type="button" class="btn btn-outline" title="Download one ZIP file with one PDF for each selected artboard"><i data-icon="archive"></i>Download ZIP</button>
+          <button id="exp-each" data-testid="export-each" type="button" class="btn btn-outline" title="Download one PDF file for each selected artboard"><i data-icon="files"></i>Download PDF per artboard</button>
+          <button id="exp-single" data-testid="export-single" type="button" class="btn btn-primary" title="Download one PDF file with all selected artboards"><i data-icon="download"></i>Download PDF</button>
+        </div>
+      </div>
+      <div id="exp-status" data-testid="export-status" role="status" aria-live="polite" class="mt-3" hidden></div>
+      <details class="group mt-3 text-xs text-muted-foreground">
+        <summary class="inline-flex cursor-pointer items-center gap-1 rounded-sm font-medium outline-none select-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+          <i data-icon="down" class="size-3.5 -rotate-90 transition-transform group-open:rotate-0"></i>How the export cleans the file
+        </summary>
+        <p class="mt-1.5 max-w-3xl pl-4.5">The export copies only the selected pages into a new PDF. It does not copy data that these pages do not use. It removes the Illustrator private data: /PieceInfo, /LastModified, page thumbnails and XMP metadata. It keeps the artwork, images, layers and page boxes.</p>
+      </details>
+    </section>
+  </section>
+</main>
+
+<div id="viewer" data-testid="viewer" hidden role="dialog" aria-modal="true" aria-labelledby="v-title"
+  class="fixed inset-0 z-40 flex flex-col bg-background text-foreground">
+  <div class="flex flex-wrap items-center gap-1 border-b bg-surface px-2 py-1.5" role="toolbar" aria-label="Viewer tools">
+    <button type="button" id="v-prev" class="tip btn btn-ghost btn-icon" data-tip="Previous artboard (K or ←)" aria-label="Previous artboard" aria-keyshortcuts="K ArrowLeft"><i data-icon="chevron-left"></i></button>
+    <h2 id="v-title" data-testid="viewer-title" class="min-w-36 px-1 text-center text-sm font-semibold tabular-nums"></h2>
+    <button type="button" id="v-next" class="tip btn btn-ghost btn-icon" data-tip="Next artboard (J or →)" aria-label="Next artboard" aria-keyshortcuts="J ArrowRight"><i data-icon="chevron-right"></i></button>
+    <span class="mx-1 h-5 w-px bg-border" aria-hidden="true"></span>
+    <div class="inline-flex items-center gap-0.5 rounded-lg border bg-muted p-0.5" role="group" aria-label="Tool">
+      <button type="button" id="v-tool-select" class="tip btn btn-ghost btn-icon size-7 aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-xs dark:aria-pressed:bg-input/50"
+        aria-pressed="true" data-tip="Select tool (V)" aria-label="Select tool" aria-keyshortcuts="V"><i data-icon="pointer"></i></button>
+      <button type="button" id="v-tool-hand" class="tip btn btn-ghost btn-icon size-7 aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-xs dark:aria-pressed:bg-input/50"
+        aria-pressed="false" data-tip="Hand tool (H, or hold Space)" aria-label="Hand tool" aria-keyshortcuts="H"><i data-icon="hand"></i></button>
+    </div>
+    <span class="mx-1 h-5 w-px bg-border" aria-hidden="true"></span>
+    <button type="button" id="v-zoom-out" class="tip btn btn-ghost btn-icon" data-tip="Zoom out (−)" aria-label="Zoom out" aria-keyshortcuts="-"><i data-icon="zoom-out"></i></button>
+    <span id="v-zoom" data-testid="viewer-zoom" class="min-w-14 text-center text-xs font-medium tabular-nums" aria-live="off" aria-label="Zoom level"></span>
+    <button type="button" id="v-zoom-in" class="tip btn btn-ghost btn-icon" data-tip="Zoom in (+)" aria-label="Zoom in" aria-keyshortcuts="+"><i data-icon="zoom-in"></i></button>
+    <button type="button" id="v-fit" class="tip btn btn-ghost btn-icon" data-tip="Fit to window (0)" aria-label="Fit to window" aria-keyshortcuts="0"><i data-icon="fit"></i></button>
+    <span id="v-busy" data-testid="viewer-busy" role="status" aria-live="polite" class="ml-2 truncate text-xs text-muted-foreground"></span>
+    <span class="flex-1"></span>
+    <button type="button" id="v-close" class="tip tip-end btn btn-ghost btn-sm" data-tip="Close (Esc)" aria-keyshortcuts="Escape"><i data-icon="x"></i>Close</button>
+  </div>
+  <div class="flex min-h-0 flex-1 max-[800px]:flex-col">
+    <div id="stage" data-testid="viewer-stage" tabindex="0" role="application" aria-roledescription="artboard canvas"
+      aria-label="Artboard. Click an element to select it. The side panel shows the keyboard shortcuts."
+      class="bg-stage relative flex-1 touch-none overflow-hidden outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset
+        [&.hand]:cursor-grab [&.panning]:cursor-grabbing [&.space]:cursor-grab">
+      <canvas id="v-base" class="pointer-events-none absolute top-0 left-0 origin-top-left bg-white shadow-[0_2px_16px_rgb(0_0_0/0.25)] ring-1 ring-black/10"></canvas>
+      <canvas id="v-detail-a" class="pointer-events-none invisible absolute top-0 left-0 origin-top-left [&.shown]:visible"></canvas>
+      <canvas id="v-detail-b" class="pointer-events-none invisible absolute top-0 left-0 origin-top-left [&.shown]:visible"></canvas>
+      <svg id="v-overlay" class="pointer-events-none absolute inset-0 size-full" aria-hidden="true"></svg>
+      <div id="v-hover" data-testid="viewer-hover" hidden
+        class="pointer-events-none absolute bottom-3 left-3 rounded-md border border-white/10 bg-zinc-900/90 px-2.5 py-1 text-xs text-white shadow-md backdrop-blur"></div>
+    </div>
+    <aside class="flex w-80 flex-none flex-col gap-5 overflow-y-auto border-l bg-surface p-4 max-[800px]:max-h-[40vh] max-[800px]:w-auto max-[800px]:border-t max-[800px]:border-l-0"
+      aria-label="Selection and download">
+      <section aria-labelledby="v-sel-title" class="flex flex-col gap-2">
+        <h3 id="v-sel-title" class="flex items-center gap-2 text-sm font-semibold">Selection <span id="v-sel-count" data-testid="selection-count-badge" class="badge border-border bg-muted text-muted-foreground tabular-nums empty:hidden"></span></h3>
+        <p id="v-sel-empty" class="rounded-lg border border-dashed bg-background p-3 text-xs leading-relaxed text-muted-foreground">Click an element to select it. Shift-click to add or remove an element. Alt-click, or click Deeper, to select inside a group. Drag a rectangle to select all elements fully inside it.</p>
+        <ul id="v-sel-list" data-testid="selection-list" class="flex max-h-64 flex-col gap-1 overflow-y-auto empty:hidden" aria-label="Selected elements"></ul>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button type="button" id="v-parent" class="btn btn-outline btn-xs"><i data-icon="up"></i>Parent</button>
+          <button type="button" id="v-deeper" class="btn btn-outline btn-xs"><i data-icon="down"></i>Deeper</button>
+          <button type="button" id="v-clear" class="btn btn-outline btn-xs"><i data-icon="x"></i>Clear</button>
+        </div>
+        <p id="v-sel-note" data-testid="selection-note" class="flex flex-col gap-1 text-xs leading-relaxed text-muted-foreground empty:hidden"></p>
+      </section>
+      <section aria-labelledby="v-dl-title" class="flex flex-col gap-2">
+        <h3 id="v-dl-title" class="text-sm font-semibold">Download selection</h3>
+        <button type="button" id="v-dl-pdf" class="btn btn-primary w-full"><i data-icon="vector"></i>Download vector PDF</button>
+        <div class="flex items-center gap-2">
+          <button type="button" id="v-dl-png" class="btn btn-outline flex-1"><i data-icon="image"></i>Download PNG</button>
+          <label class="flex items-center gap-1.5 text-[13px] whitespace-nowrap text-muted-foreground">at
+            <select id="v-dpi" class="h-9 cursor-pointer rounded-md border border-input bg-background px-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30">
+              <option>72</option><option>150</option><option selected>300</option><option>600</option>
+            </select> dpi</label>
+        </div>
+        <p id="v-png-size" data-testid="png-size" class="text-xs text-muted-foreground tabular-nums empty:hidden"></p>
+        <button type="button" id="v-dl-img" class="btn btn-outline w-full"><i data-icon="image"></i><span id="v-dl-img-label" class="truncate">Download original image</span></button>
+        <div id="v-dl-status" data-testid="download-status" role="status" aria-live="polite" class="text-xs leading-relaxed empty:hidden"></div>
+      </section>
+      <section aria-labelledby="v-keys-title" class="mt-auto flex flex-col gap-2 border-t pt-4">
+        <h3 id="v-keys-title" class="flex items-center gap-2 text-xs font-semibold text-muted-foreground"><i data-icon="keyboard" class="size-3.5"></i>Keyboard shortcuts</h3>
+        <dl class="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+          <dt class="flex gap-1"><kbd class="kbd">J</kbd><kbd class="kbd">K</kbd><kbd class="kbd">←</kbd><kbd class="kbd">→</kbd></dt><dd>Change the artboard</dd>
+          <dt class="flex gap-1"><kbd class="kbd">+</kbd><kbd class="kbd">−</kbd><kbd class="kbd">0</kbd></dt><dd>Zoom in, zoom out, fit</dd>
+          <dt class="flex gap-1"><kbd class="kbd">V</kbd><kbd class="kbd">H</kbd><kbd class="kbd">Space</kbd></dt><dd>Select tool, hand tool, pan</dd>
+          <dt class="flex gap-1"><kbd class="kbd">Ctrl</kbd><kbd class="kbd">A</kbd></dt><dd>Select all at this level</dd>
+          <dt class="flex gap-1"><kbd class="kbd">Esc</kbd></dt><dd>Close the viewer</dd>
+        </dl>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<div id="dropzone-overlay" data-testid="drop-overlay" hidden
+  class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-6 backdrop-blur-sm">
+  <div class="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-ring bg-card px-12 py-10 text-lg font-semibold shadow-xl">
+    <i data-icon="upload" class="size-8 text-muted-foreground"></i>Drop the file to open it
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
