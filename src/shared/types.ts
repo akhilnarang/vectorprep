@@ -2,7 +2,7 @@
 
 export type Box = [number, number, number, number]; // x0, y0, x1, y1 in PDF user space
 
-export type PageStatus = 'vector' | 'raster' | 'huge' | 'fonts';
+export type PageStatus = 'vector' | 'raster' | 'huge' | 'fonts' | 'pixel' | 'traced';
 
 export interface ImageInfo {
   name: string;
@@ -22,6 +22,46 @@ export interface FontInfo {
   embedded: boolean;
 }
 
+/** A pixel image that was converted into one rectangle for each pixel (or run of pixels). */
+export interface PixelArt {
+  /** filled axis-aligned rectangles */
+  rects: number;
+  /** common size of one pixel, in page units (pt before UserUnit) */
+  unitPt: number;
+  /** estimated size of the source image in pixels */
+  srcW: number;
+  srcH: number;
+  /** effective resolution at the real size (UserUnit applied) */
+  dpi: number;
+}
+
+/** Counts and flags from the artwork checks of one artboard (src/pdf/artwork.ts). */
+export interface ArtworkCheck {
+  /** path construction and painting operators, forms included */
+  drawOps: number;
+  fills: number;
+  strokes: number;
+  curvedFills: number;
+  /** distinct fill colours */
+  colours: number;
+  rects: number;
+  text: number;
+  shadings: number;
+  patterns: number;
+  forms: number;
+  /** decoded content bytes read */
+  bytes: number;
+  /** a limit stopped the scan before the end */
+  partial: boolean;
+  /** scan time in ms */
+  ms: number;
+  pixel: PixelArt | null;
+  /** looks like an image that was traced into flat-colour shapes */
+  traced: boolean;
+  /** more than MANY_OBJECTS drawing operations or filled paths */
+  many: boolean;
+}
+
 export interface PageReport {
   index: number;
   wPt: number;
@@ -33,6 +73,7 @@ export interface PageReport {
   totalMP: number;
   huge: boolean;
   status: PageStatus;
+  artwork: ArtworkCheck | null;
 }
 
 export type OpenError = 'no-pdf-compat' | 'not-pdf' | 'encrypted';
@@ -41,6 +82,8 @@ export interface OpenTimings {
   read: number;
   parse: number;
   analyse: number;
+  /** artwork checks of all pages, included in `analyse` */
+  artwork: number;
 }
 
 export type OpenResult =

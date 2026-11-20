@@ -8,6 +8,7 @@ The tool does these tasks:
 - It reads an .ai file that has PDF compatibility, or a PDF file.
 - It shows a report for each artboard (page): size, raster images, fonts and a status badge.
 - It finds artboards with very large raster images and does not select them by default.
+- It finds "fake vector" artwork: pixel images converted into vector rectangles, and images that look traced. It also warns about artboards with very many objects.
 - It exports the selected artboards as one clean PDF, as one PDF for each artboard, or as a .zip file.
 - It removes Illustrator private data from the exported PDFs.
 - It shows each artboard in a viewer with zoom and pan.

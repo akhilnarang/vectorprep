@@ -21,6 +21,31 @@
 - The report does not find inline images (`BI ... EI` in the content stream). They do not count toward the 50 MP limit.
 - Images in annotation appearance streams are not counted.
 
+### Artwork checks
+
+The "Pixel image as vectors" and "Traced image" checks use counts from the content stream. They do not look at the rendered artwork. They can be wrong.
+
+Possible false positives (the tool shows a flag, but the artwork is good vector artwork):
+
+- A large pattern of squares or tiles with 5,000 or more filled rectangles on a common size, for example a mosaic, a large QR code or a pixel-art design. The tool shows "Pixel image as vectors".
+- Detailed drawn artwork with 500 or more curved fills in 16 or more flat colours, and no strokes, text or gradients. For example, an illustration with many flat colours. The tool shows "Traced image".
+
+Possible false negatives (the artwork is a converted image, but the tool shows no flag):
+
+- A pixel image that was converted with rotated or skewed rectangles, with other shapes than rectangles (for example circles), or with rectangles that are mostly stroked and not filled.
+- A pixel image with fewer than 5,000 rectangles, or a grid smaller than 64 pixels.
+- A traced image with fewer than 500 shapes, fewer than 16 colours, mostly straight edges, strokes, or a gradient or text added after the trace. Black-and-white traces have 1 or 2 colours, so the tool does not flag them.
+- A traced or converted image inside a tiling pattern, a soft mask, a Type 3 font or an annotation. The checks do not read these.
+- Form XObjects deeper than eight levels.
+
+Other limits:
+
+- The tool counts the colours by their values in the content stream. The same colour in two colour spaces counts as two colours. The tool does not read the colour values of a pattern or a Separation colour.
+- The source image size is an estimate. It is the box of all rectangles divided by the pixel size. A transparent border in the source image is not included.
+- The "Many objects" limit counts content-stream operators, not CorelDRAW objects. One filled path with many subpaths counts as many operations. CorelDRAW can be slow with fewer objects than the limit.
+- The checks read at most 128 MiB of decoded content for each artboard. After this limit, the card shows that the tool checked only part of the content.
+- The checks run in the worker when the file opens. On the development computer, a 4 MB content stream adds about 90 ms to the time before the report shows.
+
 ### Previews and viewer
 
 - pdf.js does not draw images larger than 50 MP. The viewer shows the vector parts of a "Large raster" artboard only.

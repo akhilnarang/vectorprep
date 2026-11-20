@@ -4,7 +4,8 @@ import type { ElementPdfOptions, ElementPdfResult, ElementTreeDTO, ImageResult, 
 import { ElementNode, ElementTree, buildTree, toDTO } from './content/elements';
 import { cleanSource, exportElements, exportPages } from './export';
 import { decodeImage } from './image';
-import { analysePage, findHeader } from './inspect';
+import { FormCache, checkArtwork } from './artwork';
+import { analysePage, findHeader, pageStatus } from './inspect';
 import { N } from './objects';
 
 export class PdfSession {
@@ -37,7 +38,20 @@ export class PdfSession {
     if (doc.isEncrypted) return { error: 'encrypted' };
     const tParse = performance.now() - t0 - tRead;
     progress?.('Checking the artboards…');
-    const pages = doc.getPages().map((p, i) => analysePage(doc, p, i));
+    const docPages = doc.getPages();
+    const pages = docPages.map((p, i) => analysePage(doc, p, i));
+    progress?.('Checking the artwork…');
+    const tArt = performance.now();
+    const forms: FormCache = new Map();
+    for (const r of pages) {
+      try {
+        r.artwork = checkArtwork(doc, docPages[r.index]!, r.userUnit, forms);
+      } catch (err) {
+        console.warn(`Artwork check failed on page ${r.index + 1}`, err);
+      }
+      r.status = pageStatus(r);
+    }
+    const artMs = performance.now() - tArt;
     this.doc = doc;
     const safe = <T>(f: () => T): T | null => {
       try {
@@ -53,7 +67,12 @@ export class PdfSession {
       creator,
       producer: safe(() => doc.getProducer() ?? null),
       isIllustrator: /illustrator/i.test(creator ?? '') || !!doc.catalog.get(N('PieceInfo')),
-      timings: { read: Math.round(tRead), parse: Math.round(tParse), analyse: Math.round(performance.now() - t0 - tRead - tParse) },
+      timings: {
+        read: Math.round(tRead),
+        parse: Math.round(tParse),
+        analyse: Math.round(performance.now() - t0 - tRead - tParse),
+        artwork: Math.round(artMs),
+      },
     };
   }
 

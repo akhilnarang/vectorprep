@@ -1,6 +1,6 @@
-/** Per-page inspection for the artboard report: sizes, raster images, fonts. Never decodes streams. */
+/** Per-page inspection for the artboard report: sizes, raster images, fonts. Never decodes streams (the artwork checks are in artwork.ts). */
 import { PDFArray, PDFContext, PDFDict, PDFDocument, PDFName, PDFObject, PDFPage, PDFRef } from '@cantoo/pdf-lib';
-import type { Box, FontInfo, ImageInfo, PageReport } from '../shared/types';
+import type { ArtworkCheck, Box, FontInfo, ImageInfo, PageReport, PageStatus } from '../shared/types';
 import { N, deref, dictOf, inherited, isTrue, nameOf, numOf } from './objects';
 
 export { HUGE_MP } from '../shared/constants';
@@ -156,8 +156,18 @@ export function analysePage(doc: PDFDocument, page: PDFPage, index: number): Pag
   const fonts = [...acc.fonts.values()];
   const totalMP = images.reduce((s, i) => s + i.mp, 0);
   const huge = totalMP > HUGE_MP;
-  const status = huge ? 'huge' : fonts.length ? 'fonts' : images.length ? 'raster' : 'vector';
-  return { index, wPt, hPt, userUnit: userUnitOf(page), rotation: rot, images, fonts, totalMP, huge, status };
+  const r: PageReport = { index, wPt, hPt, userUnit: userUnitOf(page), rotation: rot, images, fonts, totalMP, huge, status: 'vector', artwork: null };
+  r.status = pageStatus(r);
+  return r;
+}
+
+/** The main status of a page. The first match wins: huge, fonts, pixel, traced, raster, vector. */
+export function pageStatus(r: Pick<PageReport, 'huge' | 'fonts' | 'images'> & { artwork: ArtworkCheck | null }): PageStatus {
+  if (r.huge) return 'huge';
+  if (r.fonts.length) return 'fonts';
+  if (r.artwork?.pixel) return 'pixel';
+  if (r.artwork?.traced) return 'traced';
+  return r.images.length ? 'raster' : 'vector';
 }
 
 /** Find the %PDF header within the first 1024 bytes. */

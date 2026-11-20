@@ -44,6 +44,10 @@ test('Multi-artboard .ai: report, huge artboard unticked, exports', async ({ pag
   await expect(page.locator('#page-0 [data-testid=card-dims]')).toContainText('1524 × 2133.6 mm');
   await expect(page.locator('#page-0 [data-testid=card-dims]')).toContainText('UserUnit 10');
   await expect(page.locator('#notes')).toContainText('Artboard 9 has raster images larger than 50 MP');
+  // Normal artwork: no "fake vector" or "many objects" flags.
+  for (let i = 0; i < 9; i++) await expect(page.locator(`#page-${i}`)).toHaveAttribute('data-flags', '');
+  await expect(page.locator('#notes [data-testid=note]')).toHaveCount(3);
+  await expect(page.locator('#page-6 [data-testid=card-artwork]')).toContainText('409 filled paths');
   await expect(page.locator('#selcount')).toHaveText('8 of 9 selected');
   await expect(page.locator('#exp-single-name')).toHaveText('sample-multi-artboard (artboards 1-8).pdf');
 
@@ -95,6 +99,8 @@ test('Live-fonts PDF: flagged for live fonts, opened by drag and drop', async ({
   await expect(page.locator('#page-0 [data-testid=badge]')).toHaveText('Live fonts');
   await expect(page.locator('#page-0 [data-testid=card-detail]')).toContainText('PetitFormalScript-Regular · Type0 · embedded');
   await expect(page.locator('#notes')).toContainText('Artboard 1 has text that is not converted to outlines');
+  await expect(page.locator('#page-0')).toHaveAttribute('data-flags', '');
+  await expect(page.locator('#notes [data-testid=note]')).toHaveCount(1);
   await expect(page.locator('#page-0 [data-testid=thumb] canvas')).toHaveCount(1);
   const f = await saveDownload(page, () => page.click('#exp-single'));
   expect(f).toMatch(/sample-live-fonts \(artboard 1\)\.pdf$/);

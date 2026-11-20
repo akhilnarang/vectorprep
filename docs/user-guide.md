@@ -25,6 +25,7 @@ Each card shows these items:
 - The size in millimetres and in points.
 - The raster images on the artboard, with their size in pixels and megapixels (MP).
 - The fonts on the artboard, if there is live text.
+- The artwork counts: drawing operations, filled paths and fill colours. If the artwork is a pixel image made of rectangles, the card also shows the size of the source image and its resolution.
 
 ### Status badges
 
@@ -34,6 +35,11 @@ Each card shows these items:
 | Vector and raster | The artboard has vector artwork and one or more raster images. | Export it. Check the image sizes in the card. |
 | Live fonts | The artboard has text that is not converted to outlines. | Read "Live fonts" in section 8. |
 | Large raster: not selected | The raster images on the artboard are larger than 50 MP in total. | Do not export it. Read "Large raster artboards" in section 8. |
+| Pixel image as vectors | The artwork is a pixel image. Each pixel, or each row of pixels with the same colour, is a small vector rectangle. | Read "Pixel image as vectors" in section 8. |
+| Traced image | The artwork looks like a raster image that was traced into flat-colour shapes. | Read "Traced image" in section 8. |
+| Many objects | The artboard has more than 50,000 drawing operations or filled paths. This badge can show together with other badges. | Read "Very many objects" in section 8. |
+
+The tool examines the artwork when it opens the file. The "Pixel image as vectors" and "Traced image" checks are estimates. They can be wrong. Always look at the artwork in the viewer.
 
 ### UserUnit
 
@@ -42,6 +48,8 @@ Some Illustrator files use a large canvas. These files store a scale factor name
 ## 3. Select artboards
 
 Each card has a check box. The tool selects all artboards except the "Large raster" artboards.
+
+The tool also selects the artboards with the "Pixel image as vectors", "Traced image" and "Many objects" badges. Often this artwork is the only version of the logo that you have. Read the note before you export it.
 
 - To select all artboards, click **All**.
 - To clear all check boxes, click **None**.
@@ -146,6 +154,54 @@ Do these steps:
 3. If you need the content of the large board, ask the client which items you need. Then select those items in the viewer and download them.
 
 The preview does not show images larger than 50 MP. The viewer shows the vector parts only.
+
+### Pixel image as vectors
+
+The "Pixel image as vectors" badge and the red note show that the artwork is a raster image that a program converted into vector rectangles. The file looks like vector artwork, but it has the quality of the original pixel image. Each pixel is a hard-edged square. CorelDRAW cannot make the edges smooth when you scale the artwork.
+
+The note gives these numbers:
+
+- The number of rectangles.
+- The approximate size of the source image in pixels. The tool divides the size of the artwork by the size of one pixel.
+- The approximate resolution in dpi at the real size of the artboard. The tool includes the UserUnit.
+
+For example: "Artboard 1 is a pixel image converted into 247,535 small rectangles. The source image was about 1,288 × 762 px. At the real size, this is about 72 dpi."
+
+Do these steps:
+
+1. For full-colour print, ask the client for the original image (PNG, JPEG, TIFF or PSD). The image must have 150 dpi or more at the print size.
+2. For vector work (cutting, engraving, embroidery or screen printing), ask the client for the vector source file. If the client does not have it, redraw the artwork.
+3. If you must use the file, export this artboard as a separate PDF. CorelDRAW is slow with this many objects.
+
+### Traced image
+
+The "Traced image" badge and the yellow note show that the artwork looks like a raster image that was traced, for example with **Image Trace** in Illustrator. The tool found many filled shapes in many flat colours, with curves. It found no strokes, no text and no gradients.
+
+The note gives the number of shapes and colours. For example: "Artboard 1 looks like a traced image. It has 1,823 filled shapes in 30 flat colours."
+
+A traced image has these problems:
+
+- Smooth gradients become flat bands of colour.
+- Small details, thin lines and small text become rough or disappear.
+- The edges of the shapes are not as clean as drawn artwork.
+
+Do these steps:
+
+1. Open the artboard in the viewer. Zoom in to 100% or more.
+2. Compare the artwork with the original image, if you have it.
+3. If the quality is not good enough, ask the client for the original image or the vector source file.
+
+This check is an estimate. Some drawn artwork with many colours can get this badge. Some traced artwork with strokes or few colours does not get it.
+
+### Very many objects
+
+The "Many objects" badge and the yellow "Very many objects" note show that the artboard has more than 50,000 drawing operations or filled paths. CorelDRAW can be very slow with this artwork, or it can stop.
+
+Do these steps:
+
+1. Export this artboard as a separate PDF. Click **Download PDF per artboard**, or select only this artboard.
+2. In CorelDRAW, save your work frequently.
+3. If the artboard also has the "Pixel image as vectors" or "Traced image" badge, read that section first.
 
 ### Raster client logos
 

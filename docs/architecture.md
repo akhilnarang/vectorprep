@@ -42,7 +42,9 @@ The app uses three threads:
 | `src/worker/pdf.worker.ts` | Worker entry point. Exposes `PdfSession` through Comlink. |
 | `src/pdf/session.ts` | One open document, its cleaning state and its cached element trees. |
 | `src/pdf/inspect.ts` | Page report: sizes, UserUnit, images, fonts, status. |
+| `src/pdf/artwork.ts` | Artwork checks: "Pixel image as vectors", "Traced image" and "Many objects". |
 | `src/pdf/content/tokenizer.ts` | Content-stream tokenizer. |
+| `src/pdf/content/scan.ts` | Counting pass over a content stream for the artwork checks. |
 | `src/pdf/content/geometry.ts` | Matrices and boxes. |
 | `src/pdf/content/elements.ts` | Element model: builds the element tree with bounding boxes. |
 | `src/pdf/content/emit.ts` | Writes selected elements as a new content stream. |
@@ -50,7 +52,7 @@ The app uses three threads:
 | `src/pdf/image.ts` | Decodes embedded images and writes PNG files. |
 | `src/pdf/flate.ts` | Flate compression with the browser `CompressionStream`. |
 | `src/shared/types.ts` | Types for data that goes between the threads. |
-| `src/shared/constants.ts` | Limits, for example the 50 MP "huge raster" limit. |
+| `src/shared/constants.ts` | Limits, for example the 50 MP "huge raster" limit and the artwork check thresholds. |
 
 ## User interface and styles
 
@@ -89,6 +91,7 @@ Elements that the tests use have a `data-testid` attribute.
    | open(File)  ---- structured clone ---->  File.arrayBuffer()
    |                                          PDFDocument.load()
    |                                          analysePage() per page
+   |                                          checkArtwork() per page
    | <------------- report (plain data) ----
    |
    | pdf.js getDocument(range transport) ------------------------->  reads byte ranges
@@ -146,6 +149,74 @@ An element is invisible when its box is empty, or when the fill or stroke alpha 
 - Alt + click goes one level below the deepest selected element under the pointer.
 - A marquee selects the largest elements that are fully inside the rectangle.
 
+## Artwork checks
+
+The artwork checks find "fake vector" files. These files look like vector artwork, but they are raster images that a program converted. The checks run in the PDF worker when the file opens, one time for each artboard. The results go to the main thread in the page report (`PageReport.artwork`).
+
+### Counting pass
+
+The checks do not use the element model. The tokenizer makes one object for each operand, and the element model makes one node for each path. For a 4 MB stream with 250,000 operators, this takes 300 ms to 450 ms. The checks need counts only.
+
+`scanContent` in `src/pdf/content/scan.ts` reads the decoded bytes one time. It does not make tokens or strings. It keeps this state:
+
+- The CTM and the fill colour, with a stack for `q` and `Q`.
+- The current path: the number of subpaths, and whether it has curves.
+- The axis-aligned rectangles of the current path. A rectangle is a `re` operator, or a subpath of `m` and three or four `l` operators with only horizontal and vertical edges. A fill adds the rectangles to a histogram of widths and heights in page space. A stroke or a clip (`n`) discards them.
+
+It counts the drawing operators (path construction and painting), the fills, the strokes, the filled paths with curves, the distinct fill colours, text objects (`BT`), shadings (`sh`), pattern fills, images and forms.
+
+`scanPage` in `src/pdf/artwork.ts` scans the page content. For each `Do` of a form XObject, it scans the form content with the form matrix and the current CTM. It goes down eight levels and does not scan a form inside itself. It keeps the decoded form streams in a cache for all pages of the document. It reads at most 128 MiB of decoded content for each artboard. At this limit, it stops and marks the result as partial.
+
+### Rules and thresholds
+
+The thresholds are in `src/shared/constants.ts`. `classifyArtwork` in `src/pdf/artwork.ts` applies them.
+
+**Pixel image as vectors.** All of these conditions must be true:
+
+| Condition | Threshold | Reason |
+| --- | --- | --- |
+| Filled axis-aligned rectangles | 5,000 or more | The sample has 247,535. A QR code or a pattern of tiles has some hundreds. |
+| Rectangles as a share of the filled subpaths | 80% or more | The rectangles are the artwork, not a detail of it. The sample has 100%. |
+| Common unit | A size that is 5% or more of all widths and heights. 90% or more of the widths, and 90% or more of the heights, are whole multiples of it (tolerance 3%). The smallest such size is the unit. | Converters write one row of pixels, or a run of pixels with the same colour, as one rectangle. So the heights are often 1 unit, and the widths are whole multiples. In the sample, the unit is 1 pt. |
+| Source image size | 64 px or more on the longer side | A smaller grid is not a photo or a logo. |
+
+The tool estimates the source image size as the box of the rectangles divided by the unit. The resolution at the real size is `72 / (unit × UserUnit)` dpi.
+
+**Traced image.** The artboard is not "Pixel image as vectors", and all of these conditions are true:
+
+| Condition | Threshold | Reason |
+| --- | --- | --- |
+| Filled paths | 500 or more | The traced sample has 1,823. The normal samples have 409 or fewer. |
+| Distinct fill colours | 16 or more | The traced sample has 30. The normal samples have 6 or fewer. A logo usually has few colours. |
+| Filled paths with curves | 50% or more of the fills | Image Trace makes curved outlines. The sample has 81%. |
+| Strokes | 2% of the fills or fewer | Image Trace makes fills only. |
+| Text objects, shadings and pattern fills | 0 | Image Trace does not make text or gradients. |
+
+The first plan was a high ratio of distinct colours to fills. The traced sample does not agree with this plan: it has 30 colours in 1,823 fills (1.6%). Illustrator Image Trace limits the palette. Thus the rule uses a minimum number of colours.
+
+**Many objects.** More than 50,000 drawing operations or more than 50,000 filled paths on one artboard. CorelDRAW becomes slow with this quantity of objects and path nodes. This flag can show together with the other two.
+
+### Results on the sample files
+
+| Sample | Drawing operations | Fills | Colours | Rectangles | Result |
+| --- | --- | --- | --- | --- | --- |
+| Converted pixel logo (1 artboard) | 247,789 | 254 | 254 | 247,535 (unit 1 pt) | Pixel image as vectors: about 1288 × 762 px, 72 dpi. Many objects. |
+| Image Trace logo (1 artboard, 1 form) | 24,085 | 1,823 | 30 | 13 | Traced image |
+| Event branding .ai (9 artboards) | 2,147 to 5,936 | 5 to 409 | 2 to 6 | 10 to 89 | No flags |
+| Canva crest PDF (3 forms) | 11,011 | 334 | 3 | 8 | No flags (it also has text) |
+
+### Status and selection
+
+The page status has two new values: `pixel` and `traced`. The order is `huge`, `fonts`, `pixel`, `traced`, `raster`, `vector`. The first match is the main badge. The card shows the other flags as more badges. The card has a `data-flags` attribute, for example `pixel many`.
+
+The checks do not change the selection. The flagged artboards stay selected. The reasons are:
+
+- Often the flagged artwork is the only artwork of the job. The user must export it, or ask the client for a better file.
+- The export does not make the artwork worse. CorelDRAW can open it.
+- The "Large raster" artboards are different. They are usually overview boards that the job does not need, and they can stop CorelDRAW.
+
+The notes explain the problem and what to ask the client for.
+
 ## Export
 
 ### Artboard export
@@ -200,6 +271,14 @@ These numbers are from Node.js 24 on the development computer. The input is the 
 | Element tree, Canva PDF (11,200 operators, 3 forms) | 49 ms |
 | Tokenize 570 KB of content (11,080 operators) | 11 ms |
 | Export artboards 1 to 8 | 35 ms |
+| Artwork checks, 158 MB file, 9 artboards (1.3 MB of content) | 9 ms |
+| Artwork checks, Canva PDF (0.58 MB of content, 3 forms) | 6 ms |
+| Artwork checks, Image Trace logo (0.58 MB form) | 3 ms to 6 ms |
+| Artwork checks, converted pixel logo (4.0 MB stream, 247,789 operators) | 65 ms |
+| Of this: inflate of the 4.0 MB stream (pdf-lib, JavaScript) | 32 ms |
+| Of this: counting pass | 42 ms (warm: 28 ms) |
+| For comparison: tokenizer only, same stream | 315 ms |
+| For comparison: element tree, same stream | 446 ms |
 | Element PDF (one logo) | 4 ms |
 | Original image, 4110 × 4110 RGB, decode and PNG | 491 ms |
 | Of this: native inflate (0.9 MB to 50.7 MB) | 97 ms |
@@ -216,6 +295,17 @@ Browser measurements (Chromium 159, `vite preview`, the 158 MB file):
 | First three previews | 1,210 ms | 725 ms |
 | Export of artboards 1 to 8 | 78 ms | 78 ms |
 | Longest main-thread pause during load | 50 to 60 ms | 65 ms |
+
+Artwork checks in the browser (Chromium, `vite preview`, median of 3 loads). The "report" time is from file selection to the visible report. The worker runs the checks, so the longest main-thread pause did not change.
+
+| File | Checks in the worker | Report before | Report after | Longest main-thread pause, before and after |
+| --- | --- | --- | --- | --- |
+| Converted pixel logo (4.0 MB stream) | 93 ms | 29 ms | 123 ms | 58 ms, 66 ms |
+| Image Trace logo | 21 ms | 35 ms | 56 ms | 21 ms, 31 ms |
+| 158 MB event branding file | 33 ms | 140 ms | 168 ms | 161 ms, 164 ms |
+| Canva PDF | 19 ms | 32 ms | 50 ms | 23 ms, 23 ms |
+
+The browser times are larger than the Node.js times because the worker starts new for each file and its code is not optimized yet.
 
 ### Why there is no WASM
 

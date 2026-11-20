@@ -105,3 +105,55 @@ export async function buildArtboardsDoc(): Promise<Uint8Array> {
   doc.setCreator('Adobe Illustrator 31.0 (synthetic)');
   return doc.save({ useObjectStreams: false });
 }
+
+/** One page with the given content and optional resources. Returns the saved and loaded document. */
+export async function buildContentDoc(
+  content: string,
+  opts: { size?: [number, number]; userUnit?: number; resources?: (doc: PDFDocument) => Record<string, unknown> } = {},
+): Promise<PDFDocument> {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage(opts.size ?? [600, 400]);
+  if (opts.resources) page.node.set(PDFName.of('Resources'), doc.context.obj(opts.resources(doc) as never));
+  page.node.set(PDFName.of('Contents'), stream(doc, {}, enc(content)));
+  if (opts.userUnit) page.node.set(PDFName.of('UserUnit'), doc.context.obj(opts.userUnit));
+  return PDFDocument.load(await doc.save({ useObjectStreams: false }));
+}
+
+/**
+ * A pixel image "converted" to vectors: a w×h grid of 1-unit cells in five colours. Like the
+ * converters do, each colour is one filled path, and runs of cells with the same colour on a
+ * row are merged into one wider rectangle. With `mlRects`, rectangles use m/l/l/l/h, not `re`.
+ */
+export function pixelGridContent(w: number, h: number, opts: { x0?: number; y0?: number; mlRects?: boolean } = {}): string {
+  const x0 = opts.x0 ?? 10;
+  const y0 = opts.y0 ?? 20;
+  const colour = (x: number, y: number) => (Math.floor(x / 3) * 7 + Math.floor(y / 2) * 3 + ((x * y) % 4 === 0 ? 1 : 0)) % 5;
+  const paths: string[][] = [[], [], [], [], []];
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; ) {
+      const c = colour(x, y);
+      let run = 1;
+      while (x + run < w && colour(x + run, y) === c) run++;
+      const [rx, ry] = [x0 + x, y0 + y];
+      paths[c]!.push(
+        opts.mlRects ? `${rx} ${ry} m ${rx + run} ${ry} l ${rx + run} ${ry + 1} l ${rx} ${ry + 1} l h` : `${rx} ${ry} ${run} 1 re`,
+      );
+      x += run;
+    }
+  const rgb = ['1 0 0', '0 1 0', '0 0 1', '1 1 0', '0.2 0.2 0.2'];
+  return paths.map((p, c) => `${rgb[c]} rg\n${p.join('\n')}\nf`).join('\n');
+}
+
+/** Image Trace output: `n` closed curved shapes, each in its own q/cm/Q group, in `colours` flat colours. */
+export function tracedContent(n: number, colours: number): string {
+  const out: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const c = i % colours;
+    const [x, y] = [(i * 37) % 500, (i * 53) % 350];
+    out.push(
+      `${(c / colours).toFixed(3)} ${((c * 7) % colours / colours).toFixed(3)} 0.5 rg`,
+      `q 1 0 0 1 ${x} ${y} cm 0 0 m 5 0 l 9 2 12 6 12 10 c 8 14 l 2 13 -1 8 0 4 c h f Q`,
+    );
+  }
+  return out.join('\n');
+}
