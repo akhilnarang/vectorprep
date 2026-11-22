@@ -19,6 +19,8 @@ A static, client-side web app. It prepares client .ai and PDF files for CorelDRA
 | End-to-end tests | `SAMPLES_DIR=/path/to/samples npm run test:e2e` |
 | Audit | `npm audit` and `npm audit --omit=dev` |
 
+Use Node.js 26 (the current LTS release) or later. `package.json` sets `engines` and `devEngines`, and `.npmrc` sets `engine-strict=true`. npm stops if the Node.js version is too old.
+
 Run `npx playwright install chromium` one time before the first end-to-end run.
 
 The end-to-end tests use port 4173. Set `E2E_PORT` to use a different port.

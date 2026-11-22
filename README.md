@@ -19,7 +19,7 @@ The user interface uses plain TypeScript and Tailwind CSS v4. It does not use a 
 
 ## Quick start
 
-You need Node.js 22.13 or later (Node.js 24 is recommended) and npm.
+You need Node.js 26 or later and npm. Node.js 26 is the current LTS release. The repository has an `.nvmrc` file. If you use nvm, run `nvm use`.
 
 1. Install the dependencies:
 
